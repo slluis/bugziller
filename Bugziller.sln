@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bugziller", "Bugziller\Bugziller.csproj", "{2BB33A5A-8B06-49CC-A133-931D30286C33}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bugzproxy", "bugzproxy\bugzproxy.csproj", "{312A5200-31CA-481D-AAD3-CDB165A4AF37}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2BB33A5A-8B06-49CC-A133-931D30286C33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BB33A5A-8B06-49CC-A133-931D30286C33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BB33A5A-8B06-49CC-A133-931D30286C33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BB33A5A-8B06-49CC-A133-931D30286C33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{312A5200-31CA-481D-AAD3-CDB165A4AF37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{312A5200-31CA-481D-AAD3-CDB165A4AF37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{312A5200-31CA-481D-AAD3-CDB165A4AF37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{312A5200-31CA-481D-AAD3-CDB165A4AF37}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Bugziller\Bugziller.csproj
+	EndGlobalSection
+EndGlobal
