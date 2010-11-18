@@ -351,7 +351,7 @@ namespace Bugziller
 		
 		bool IsFiltered (BugInfo bi)
 		{
-			if (bi.Status == "NEEDINFO" || bi.Status == "CLOSED" || bi.Status == "RESOLVED")
+			if (bi.Status == "NEEDINFO" || bi.Status == "CLOSED" || bi.Status == "RESOLVED" || bi.Status == "VERIFIED")
 				return true;
 			string filter = entryFilter.Text.ToLower ();
 			if (filter.Length > 0) {
