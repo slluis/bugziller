@@ -6,7 +6,7 @@
        url       = "http://monodevelop.com"
        description = "Integrates Bugzilla into the MonoDevelop IDE."
 	   category    = "IDE extensions"
-       version   = "2.4">
+       version   = "2.6">
 
 	<Runtime>
 		<Import assembly="bugzproxy.dll" />
@@ -14,9 +14,8 @@
 	</Runtime>
 	
 	<Dependencies>
-		<Addin id="Core" version="2.4"/>
-		<Addin id="Ide" version="2.4"/>
-		<Assembly name="foo" package="bar" />
+		<Addin id="Core" version="2.6"/>
+		<Addin id="Ide" version="2.6"/>
 	</Dependencies>
 	
 	<Extension path = "/MonoDevelop/Ide/Pads">
