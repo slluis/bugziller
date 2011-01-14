@@ -232,6 +232,14 @@ namespace Bugzproxy
 		public string TargetMilestone {
 			get; set;
 		}
+		
+		public string Component {
+			get { return bi.component; }
+		}
+		
+		public string OperatingSystem {
+			get { return bi.op_sys; }
+		}
 	}
 	// class Bug
 }

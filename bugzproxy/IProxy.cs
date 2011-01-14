@@ -177,6 +177,10 @@ namespace Bugzproxy
 			public string assigned_to;
 			public string severity;
 			public string status;
+			[XmlRpcMissingMapping(MappingAction.Ignore)]
+			public string component;
+			[XmlRpcMissingMapping(MappingAction.Ignore)]
+			public string op_sys;
 		}
 
 		/// <summary>A list of Bugs</summary>
