@@ -38,31 +38,53 @@ namespace Bugziller
 	public partial class BugsViewWidget : Gtk.Bin
 	{
 		ServerInfo[] servers;
-		ListStore bugsStore;
+		TreeStore bugsStore;
 		BugzillaServer server;
 		List<BugInfo> draggedBugs;
 		CommandEntrySet menuSet;
 		bool updatingServers;
+		GroupCommand lastGroupCommand = GroupCommand.GroupByNothing;
+		TreeViewColumn groupColumn;
+		TreeViewColumn lastGroupColumn;
+		TreeViewColumn[] groupColumns;
 		
 		Gdk.Color HighPrioColor = new Gdk.Color (235, 160, 160);
 		Gdk.Color MedPrioColor = new Gdk.Color (235, 203, 145);
 		Gdk.Color LowPrioColor = new Gdk.Color (235, 228, 160);
+		
+		const int ColBug = 0;
+		const int ColGroup = 1;
+		const int ColId = 2;
+		const int ColPriority = 3;
+		const int ColStatus = 4;
+		const int ColSeverity = 5;
+		const int ColTargetMilestone = 6;
+		const int ColAge = 7;
+		const int ColAssignee = 8;
+		const int ColOS = 9;
+		const int ColComponent = 10;
+		const int ColSummary = 11;
+		const int ColWeight = 12;
+		const int ColBackColor = 13;
+		const int ColFontColor = 14;
 		
 		public BugsViewWidget (BugzillaServer server)
 		{
 			this.Build ();
 			this.server = server;
 			
-			bugsStore = new ListStore (
+			bugsStore = new TreeStore (
 			                           typeof (BugInfo), 
+			                           typeof(string), // Group
 			                           typeof(int), // Id
 			                           typeof(int), // Local priority
-			                           typeof(int), // Auto priority
 			                           typeof(string), // Status
 			                           typeof(string), // Severity
 			                           typeof(string), // Target Milestone
 			                           typeof(int), // Age
 			                           typeof(string), // Assignee
+			                           typeof(string), // ColOS
+			                           typeof(string), // Component
 			                           typeof(string), // Summary
 			                           typeof(int), // Weight
 			                           typeof(Gdk.Color), // Back color
@@ -78,16 +100,20 @@ namespace Bugziller
 			spin.Editable = true;
 			spin.Edited += HandleSpinEdited;
 			
-			bugsList.AppendColumn ("Id", new CellRendererText (), "text", 1);
-			bugsList.AppendColumn ("Prio", spin, "text", 2);
-			bugsList.AppendColumn ("A Prio", new CellRendererText (), "text", 3);
-			bugsList.AppendColumn ("Status", new CellRendererText (), "text", 4);
-			bugsList.AppendColumn ("Severity", new CellRendererText (), "text", 5);
-			bugsList.AppendColumn ("Milestone", new CellRendererText (), "text", 6);
-			bugsList.AppendColumn ("Age", new CellRendererText (), "text", 7);
-			bugsList.AppendColumn ("Assigned", new CellRendererText (), "text", 8);
+			groupColumns = new TreeViewColumn [Enum.GetValues (typeof(GroupCommand)).Length - 1];
+			
+			groupColumn = bugsList.AppendColumn ("Category", new CellRendererText (), "text", ColGroup);
+			bugsList.AppendColumn ("Id", new CellRendererText (), "text", ColId);
+			bugsList.AppendColumn ("Prio", spin, "text", ColPriority);
+			groupColumns [(int)GroupCommand.GroupByStatus] = bugsList.AppendColumn ("Status", new CellRendererText (), "text", ColStatus);
+			groupColumns [(int)GroupCommand.GroupBySeverity] = bugsList.AppendColumn ("Severity", new CellRendererText (), "text", ColSeverity);
+			groupColumns [(int)GroupCommand.GroupByMilestone] = bugsList.AppendColumn ("Milestone", new CellRendererText (), "text", ColTargetMilestone);
+			bugsList.AppendColumn ("Age", new CellRendererText (), "text", ColAge);
+			groupColumns [(int)GroupCommand.GroupByOwner] = bugsList.AppendColumn ("Assigned", new CellRendererText (), "text", ColAssignee);
+			bugsList.AppendColumn ("OS", new CellRendererText (), "text", ColOS);
+			groupColumns [(int)GroupCommand.GroupByComponent] = bugsList.AppendColumn ("Component", new CellRendererText (), "text", ColComponent);
 			CellRendererText ct = new CellRendererText ();
-			bugsList.AppendColumn ("Summary", ct, "text", 9);
+			bugsList.AppendColumn ("Summary", ct, "text", ColSummary);
 			
 			int n = 1;
 			foreach (TreeViewColumn col in bugsList.Columns) {
@@ -96,9 +122,9 @@ namespace Bugziller
 				col.Resizable = true;
 				col.Reorderable = true;
 				CellRendererText crt = (CellRendererText) col.CellRenderers[0];
-				col.AddAttribute (crt, "weight", 10);
-				col.AddAttribute (crt, "background-gdk", 11);
-				col.AddAttribute (crt, "foreground-gdk", 12);
+				col.AddAttribute (crt, "weight", ColWeight);
+				col.AddAttribute (crt, "background-gdk", ColBackColor);
+				col.AddAttribute (crt, "foreground-gdk", ColFontColor);
 			}
 			
 			bugsList.DragBegin += HandleBugsListDragBegin;
@@ -114,9 +140,12 @@ namespace Bugziller
 			Gtk.Drag.SourceSet (bugsList, Gdk.ModifierType.Button1Mask, targets, Gdk.DragAction.Move);
 			bugsList.EnableModelDragDest (targets, Gdk.DragAction.Move);
 			
-			ActionCommand setPrioHigh = new ActionCommand (LocalCommands.SetPriorityHigh, GettextCatalog.GetString ("Set High Priority"));
-			ActionCommand setPrioMed = new ActionCommand (LocalCommands.SetPriorityMed, GettextCatalog.GetString ("Set Medium Priority"));
-			ActionCommand setPrioLow = new ActionCommand (LocalCommands.SetPriorityLow, GettextCatalog.GetString ("Set Low Priority"));
+			ActionCommand setPrioHigh = new ActionCommand (LocalCommands.SetPriorityHigh, GettextCatalog.GetString ("Set High Priority (Bottom)"));
+			ActionCommand setPrioMed = new ActionCommand (LocalCommands.SetPriorityMed, GettextCatalog.GetString ("Set Medium Priority (Bottom)"));
+			ActionCommand setPrioLow = new ActionCommand (LocalCommands.SetPriorityLow, GettextCatalog.GetString ("Set Low Priority (Bottom)"));
+			ActionCommand setPrioHighTop = new ActionCommand (LocalCommands.SetPriorityHighTop, GettextCatalog.GetString ("Set High Priority (Top)"));
+			ActionCommand setPrioMedTop = new ActionCommand (LocalCommands.SetPriorityMedTop, GettextCatalog.GetString ("Set Medium Priority (Top)"));
+			ActionCommand setPrioLowTop = new ActionCommand (LocalCommands.SetPriorityLowTop, GettextCatalog.GetString ("Set Low Priority (Top)"));
 			ActionCommand toggleRead = new ActionCommand (LocalCommands.ToggleNewMarker, GettextCatalog.GetString ("Mark as Changed"));
 			ActionCommand openInBrowser = new ActionCommand (LocalCommands.OpenInBrowser, GettextCatalog.GetString ("Open in Browser"));
 			ActionCommand refreshBugInfo = new ActionCommand (LocalCommands.RefreshFromSever, GettextCatalog.GetString ("Refresh From Server"));
@@ -128,8 +157,11 @@ namespace Bugziller
 			menuSet = new CommandEntrySet ();
 			menuSet.Add (openInBrowser);
 			menuSet.AddSeparator ();
+			menuSet.Add (setPrioHighTop);
 			menuSet.Add (setPrioHigh);
+			menuSet.Add (setPrioMedTop);
 			menuSet.Add (setPrioMed);
+			menuSet.Add (setPrioLowTop);
 			menuSet.Add (setPrioLow);
 			menuSet.AddSeparator ();
 			
@@ -151,18 +183,41 @@ namespace Bugziller
 			adminMenuSet.Add (newServer);
 			adminMenuSet.Add (deleteServer);
 			adminMenuSet.Add (editServer);
-
+			
+			// Edit button
+			
 			MenuButton editButton = new MenuButton ();
 			editButton.Relief = ReliefStyle.None;
 			editButton.Label = GettextCatalog.GetString ("Manage");
 			editButton.MenuCreator = delegate {
 				return IdeApp.CommandService.CreateMenu (adminMenuSet);
 			};
-			
 			hboxHeader.PackStart (editButton, false, false, 0);
 			Box.BoxChild ch = (Box.BoxChild) hboxHeader [editButton];
 			ch.Position = 1;
-			editButton.Show ();
+			editButton.ShowAll ();
+			
+			// Group by button
+
+			CommandEntrySet groupByMenuSet = new CommandEntrySet ();
+			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByNothing, GettextCatalog.GetString ("Don't group")));
+			groupByMenuSet.AddSeparator ();
+			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByComponent, GettextCatalog.GetString ("Component")));
+			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByMilestone, GettextCatalog.GetString ("Target Milestone")));
+			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByOwner, GettextCatalog.GetString ("Assigned To")));
+			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupBySeverity, GettextCatalog.GetString ("Severity")));
+			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByStatus, GettextCatalog.GetString ("Status")));
+			
+			MenuButton groupButton = new MenuButton ();
+			groupButton.Relief = ReliefStyle.None;
+			groupButton.Label = GettextCatalog.GetString ("Group By");
+			groupButton.MenuCreator = delegate {
+				return IdeApp.CommandService.CreateMenu (groupByMenuSet);
+			};
+			hboxHeader.PackStart (groupButton, false, false, 0);
+			ch = (Box.BoxChild) hboxHeader [groupButton];
+			ch.Position = 4;
+			groupButton.ShowAll ();
 			
 			// Load data
 			
@@ -206,8 +261,11 @@ namespace Bugziller
 
 		enum LocalCommands
 		{
+			SetPriorityHighTop,
 			SetPriorityHigh,
+			SetPriorityMedTop,
 			SetPriorityMed,
+			SetPriorityLowTop,
 			SetPriorityLow,
 			ToggleNewMarker,
 			OpenInBrowser,
@@ -217,6 +275,16 @@ namespace Bugziller
 			NewServer,
 			DeleteServer,
 			EditServer
+		}
+		
+		enum GroupCommand
+		{
+			GroupByComponent,
+			GroupByOwner,
+			GroupByStatus,
+			GroupByMilestone,
+			GroupBySeverity,
+			GroupByNothing
 		}
 
 		bool CheckAndDrop (int x, int y, bool drop, Gdk.DragContext ctx)
@@ -253,7 +321,7 @@ namespace Bugziller
 				bugsList.GetDestRowAtPos (args.X, args.Y, out path, out pos);
 				TreeIter it;
 				bugsStore.GetIter (out it, path);
-				int order = (int) bugsStore.GetValue (it, 2);
+				int order = (int) bugsStore.GetValue (it, ColPriority);
 				SetOrder (order, draggedBugs);
 				Gtk.Drag.Finish (args.Context, true, true, args.Time);
 			} else {
@@ -274,9 +342,11 @@ namespace Bugziller
 				if (int.TryParse (args.NewText, out val)) {
 					if (val < 0) val = 0;
 					if (val > 10) val = 10;
-					BugInfo bi = (BugInfo) bugsStore.GetValue (it, 0);
-					bugsStore.SetValue (it, 2, val);
-					bi.LocalPriority = val;
+					BugInfo bi = (BugInfo) bugsStore.GetValue (it, ColBug);
+					if (bi != null) {
+						bugsStore.SetValue (it, ColPriority, val);
+						bi.LocalPriority = val;
+					}
 				}
 			}
 		}
@@ -287,8 +357,9 @@ namespace Bugziller
 			foreach (var p in bugsList.Selection.GetSelectedRows ()) {
 				TreeIter it;
 				bugsStore.GetIter (out it, p);
-				BugInfo bi = (BugInfo) bugsStore.GetValue (it, 0);
-				bugs.Add (bi);
+				BugInfo bi = (BugInfo) bugsStore.GetValue (it, ColBug);
+				if (bi != null)
+					bugs.Add (bi);
 			}
 			return bugs;
 		}
@@ -309,11 +380,32 @@ namespace Bugziller
 			bugsStore.Clear ();
 			int nbugs = 0;
 			try {
-				foreach (BugInfo bi in server.GetBugs ()) {
-					if (IsFiltered (bi))
-						continue;
-					AppendBug (bi);
-					nbugs++;
+				if (lastGroupColumn != null) {
+					lastGroupColumn.Visible = true;
+					lastGroupColumn = null;
+				}
+				
+				if (lastGroupCommand == GroupCommand.GroupByNothing) {
+					groupColumn.Visible = false;
+					foreach (BugInfo bi in server.GetBugs ()) {
+						if (IsFiltered (bi))
+							continue;
+						AppendBug (TreeIter.Zero, bi);
+						nbugs++;
+					}
+				} else {
+					lastGroupColumn = groupColumns [(int)lastGroupCommand];
+					groupColumn.Title = lastGroupColumn.Title;
+					groupColumn.Visible = true;
+					lastGroupColumn.Visible = false;
+					foreach (var bg in GroupBugs ()) {
+						string name = string.IsNullOrEmpty (bg.Key) ? "(None)" : bg.Key;
+						TreeIter it = AppendGroup (name + " (" + bg.Value.Count () + ")");
+						foreach (var b in bg.Value) {
+							AppendBug (it, b);
+							nbugs++;
+						}
+					}
 				}
 			} catch (Exception ex) {
 				MessageService.ShowException (ex);
@@ -327,7 +419,7 @@ namespace Bugziller
 			countLabel.Text = "Count: " + nbugs;
 		}
 
-		void AppendBug (BugInfo bug)
+		void AppendBug (TreeIter pi, BugInfo bug)
 		{
 			int age = (int) (DateTime.Now - bug.DateCreated).TotalDays;
 			int we = bug.IsNew ? 700 : 400;
@@ -345,8 +437,27 @@ namespace Bugziller
 				fg = server.GetTagColor (bug.Tags[0]);
 			else
 				fg = null;
-			bugsStore.AppendValues (bug, bug.Id, bug.LocalPriority, bug.AutoPriority, bug.Status, bug.Severity, bug.TargetMilestone, age, bug.Assignee, bug.Summary, we, bg, fg);
-//			bugsStore.AppendValues (bug, 2, 1, 3, "", "", "", 1, "", "", null, null, null);
+			if (pi.Equals (TreeIter.Zero))
+				bugsStore.AppendValues (bug, GrepGroupValue (bug), bug.Id, bug.LocalPriority, bug.Status, bug.Severity, bug.TargetMilestone, age, bug.Assignee, bug.OperatingSystem, bug.Component, bug.Summary, we, bg, fg);
+			else
+				bugsStore.AppendValues (pi, bug, GrepGroupValue (bug), bug.Id, bug.LocalPriority, bug.Status, bug.Severity, bug.TargetMilestone, age, bug.Assignee, bug.OperatingSystem, bug.Component, bug.Summary, we, bg, fg);
+		}
+		
+		TreeIter AppendGroup (string name)
+		{
+			return bugsStore.AppendValues (null, name, 0, 0, "", "", "", 0, "", "", "", "", 400, null, null);
+		}
+		
+		string GrepGroupValue (BugInfo b)
+		{
+			switch (lastGroupCommand) {
+			case GroupCommand.GroupByComponent: return b.Component;
+			case GroupCommand.GroupByMilestone: return b.TargetMilestone;
+			case GroupCommand.GroupByOwner: return b.Assignee;
+			case GroupCommand.GroupBySeverity: return b.Severity;
+			case GroupCommand.GroupByStatus: return b.Status;
+			}
+			return "";
 		}
 		
 		bool IsFiltered (BugInfo bi)
@@ -356,18 +467,22 @@ namespace Bugziller
 			string filter = entryFilter.Text.ToLower ();
 			if (filter.Length > 0) {
 				if (bi.Summary.ToLower ().IndexOf (filter) == -1) {
-					if (bi.Comments.Any (ci => ci.Text.ToLower ().IndexOf (filter) == -1))
+					if (bi.Comments.All (ci => ci.Text.ToLower ().IndexOf (filter) == -1))
 						return true;
 				}
 			}
 			return false;
 		}
 		
+		IEnumerable<KeyValuePair<string,IEnumerable<BugInfo>>> GroupBugs ()
+		{
+			return from b in server.GetBugs () where !IsFiltered(b) group b by GrepGroupValue(b) into g select new KeyValuePair<string,IEnumerable<BugInfo>> (g.Key, g);
+		}
+		
 		internal void ShowPopup ()
 		{
 			IdeApp.CommandService.ShowContextMenu (menuSet, bugsList);
 		}
-		
 		
 		protected virtual void OnButtonUpdateClicked (object sender, System.EventArgs e)
 		{
@@ -403,8 +518,7 @@ namespace Bugziller
 		protected void OnSetPriorityHigh ()
 		{
 			List<BugInfo> sel = GetSelection ();
-			server.SetOrder (server.HighPriorityLevel + 1, sel);
-			server.HighPriorityLevel = server.HighPriorityLevel + sel.Count;
+			server.SetPriority (Priority.High, false, sel);
 			Fill ();
 			server.Save ();
 		}
@@ -413,8 +527,7 @@ namespace Bugziller
 		protected void OnSetPriorityMed ()
 		{
 			List<BugInfo> sel = GetSelection ();
-			server.SetOrder (server.MedPriorityLevel + 1, sel);
-			server.MedPriorityLevel = server.MedPriorityLevel + sel.Count;
+			server.SetPriority (Priority.Medium, false, sel);
 			Fill ();
 			server.Save ();
 		}
@@ -423,8 +536,34 @@ namespace Bugziller
 		protected void OnSetPriorityLow ()
 		{
 			List<BugInfo> sel = GetSelection ();
-			server.SetOrder (server.LowPriorityLevel + 1, sel);
-			server.LowPriorityLevel = server.LowPriorityLevel + sel.Count;
+			server.SetPriority (Priority.Low, false, sel);
+			Fill ();
+			server.Save ();
+		}
+		
+		[CommandHandler (LocalCommands.SetPriorityHighTop)]
+		protected void OnSetPriorityHighTop ()
+		{
+			List<BugInfo> sel = GetSelection ();
+			server.SetPriority (Priority.High, true, sel);
+			Fill ();
+			server.Save ();
+		}
+		
+		[CommandHandler (LocalCommands.SetPriorityMedTop)]
+		protected void OnSetPriorityMedTop ()
+		{
+			List<BugInfo> sel = GetSelection ();
+			server.SetPriority (Priority.Medium, true, sel);
+			Fill ();
+			server.Save ();
+		}
+		
+		[CommandHandler (LocalCommands.SetPriorityLowTop)]
+		protected void OnSetPriorityLowTop ()
+		{
+			List<BugInfo> sel = GetSelection ();
+			server.SetPriority (Priority.Low, true, sel);
 			Fill ();
 			server.Save ();
 		}
@@ -571,6 +710,19 @@ namespace Bugziller
 		protected void OnUpdateEditServer (CommandInfo ci)
 		{
 			ci.Enabled = server != null;
+		}
+		
+		[CommandHandler (GroupCommand.GroupByComponent)] protected void OnGroupByComponent () { OnGroupBy (GroupCommand.GroupByComponent); }
+		[CommandHandler (GroupCommand.GroupByMilestone)] protected void OnGroupByMilestone () { OnGroupBy (GroupCommand.GroupByMilestone); }
+		[CommandHandler (GroupCommand.GroupByOwner)] protected void OnGroupByOwner () { OnGroupBy (GroupCommand.GroupByOwner); }
+		[CommandHandler (GroupCommand.GroupBySeverity)] protected void OnGroupBySeverity () { OnGroupBy (GroupCommand.GroupBySeverity); }
+		[CommandHandler (GroupCommand.GroupByStatus)] protected void OnGroupByStatus () { OnGroupBy (GroupCommand.GroupByStatus); }
+		[CommandHandler (GroupCommand.GroupByNothing)] protected void OnGroupByNothing () { OnGroupBy (GroupCommand.GroupByNothing); }
+		
+		void OnGroupBy (GroupCommand c)
+		{
+			lastGroupCommand = c;
+			Fill ();
 		}
 		
 		void HandleBugsListSelectionChanged (object sender, EventArgs e)

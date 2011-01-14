@@ -16,7 +16,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\bin</OutputPath>
+    <OutputPath>..\..\..\.config\MonoDevelop\addins\Bugziller</OutputPath>
     <DefineConstants>DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -25,7 +25,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\bin</OutputPath>
+    <OutputPath>..\..\..\.config\MonoDevelop\addins\Bugziller</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -57,6 +57,7 @@
     <Compile Include="Commands.cs" />
     <Compile Include="EditServerDialog.cs" />
     <Compile Include="gtk-gui\Bugziller.EditServerDialog.cs" />
+    <Compile Include="Priority.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Bugziller.addin.xml">

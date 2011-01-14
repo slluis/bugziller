@@ -5,8 +5,8 @@
     <target-gtk-version>2.12</target-gtk-version>
   </configuration>
   <import>
-    <widget-library name="MonoDevelop.Ide, Version=2.4.0.0, Culture=neutral" />
-    <widget-library name="../../bin/Bugziller.dll" internal="true" />
+    <widget-library name="MonoDevelop.Ide, Version=2.6.0.0, Culture=neutral" />
+    <widget-library name="../../../../.config/MonoDevelop/addins/Bugziller/Bugziller.dll" internal="true" />
   </import>
   <widget class="Gtk.Bin" id="Bugziller.BugsViewWidget" design-size="575 729">
     <property name="MemberName" />

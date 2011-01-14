@@ -354,6 +354,8 @@ namespace Bugziller
 			bi.Status = b.Status;
 			bi.TargetMilestone = b.TargetMilestone;
 			bi.DateCreated = b.Created;
+			bi.Component = b.Component;
+			bi.OperatingSystem = b.OperatingSystem;
 			bi.Comments.Clear ();
 			
 			if (comments != null) {
@@ -426,6 +428,68 @@ namespace Bugziller
 			HighPriorityLevel = ch != null ? ch.LocalPriority : -1;
 			MedPriorityLevel = cm != null ? cm.LocalPriority : -1;
 			LowPriorityLevel = cl != null ? cl.LocalPriority : -1;
+			
+			if (MedPriorityLevel < HighPriorityLevel)
+				MedPriorityLevel = HighPriorityLevel;
+			if (LowPriorityLevel < MedPriorityLevel)
+				LowPriorityLevel = MedPriorityLevel;
+		}
+		
+		int GetLevel (Priority p)
+		{
+			switch (p) {
+			case Priority.High: return HighPriorityLevel;
+			case Priority.Medium: return MedPriorityLevel;
+			case Priority.Low: return LowPriorityLevel;
+			}
+			throw new NotSupportedException ();
+		}
+		
+		void SetLevel (Priority p, int i)
+		{
+			switch (p) {
+			case Priority.High: HighPriorityLevel = i; break;
+			case Priority.Medium: MedPriorityLevel = i; break;
+			case Priority.Low: LowPriorityLevel = i; break;
+			}
+		}
+		
+		public void SetPriority (Priority priority, bool atTop, List<BugInfo> list)
+		{
+			BugInfo[] cbugs = new BugInfo [3];
+			for (int n=0; n<3; n++)
+				cbugs [n] = FindPreviousNotIncluded (GetLevel ((Priority)n), list);
+			
+			foreach (var b in list) {
+				b.IsNew = false;
+				orderedBugs.Remove (b);
+			}
+			
+			foreach (BugInfo b in list) {
+				
+				if (atTop) {
+					int n = (int)priority;
+					int pos = 0;
+					while (--n >= 0) {
+						BugInfo refb = cbugs [n];
+						if (refb != null) {
+							int i = orderedBugs.IndexOf (refb);
+							pos = i + 1;
+							break;
+						}
+					}
+					orderedBugs.Insert (pos, b);
+				} else {
+					BugInfo refb = cbugs [(int)priority];
+					int i = orderedBugs.IndexOf (refb);
+					orderedBugs.Insert (i + 1, b);
+					cbugs [(int)priority] = b;
+				}
+			}
+			UpdateIndexes ();
+			
+			for (int n=0; n<3; n++)
+				SetLevel ((Priority)n, cbugs[n] != null ? cbugs[n].LocalPriority : -1);
 			
 			if (MedPriorityLevel < HighPriorityLevel)
 				MedPriorityLevel = HighPriorityLevel;

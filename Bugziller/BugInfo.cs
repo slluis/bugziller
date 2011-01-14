@@ -60,6 +60,10 @@ namespace Bugziller
 		
 		public DateTime DateCreated { get; set; }
 		
+		public string Component { get; set; }
+		
+		public string OperatingSystem { get; set; }
+		
 		public int AutoPriority {
 			get {
 				return Array.IndexOf (Severities, Severity);
