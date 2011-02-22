@@ -67,6 +67,7 @@ namespace Bugziller
 		const int ColWeight = 12;
 		const int ColBackColor = 13;
 		const int ColFontColor = 14;
+		const int ColTags = 15;
 		
 		public BugsViewWidget (BugzillaServer server)
 		{
@@ -88,7 +89,8 @@ namespace Bugziller
 			                           typeof(string), // Summary
 			                           typeof(int), // Weight
 			                           typeof(Gdk.Color), // Back color
-			                           typeof(Gdk.Color) // Font color
+			                           typeof(Gdk.Color), // Font color
+			                           typeof(string) // Summary
 			                           );
 			bugsList.Model = bugsStore;
 			
@@ -112,6 +114,7 @@ namespace Bugziller
 			groupColumns [(int)GroupCommand.GroupByOwner] = bugsList.AppendColumn ("Assigned", new CellRendererText (), "text", ColAssignee);
 			bugsList.AppendColumn ("OS", new CellRendererText (), "text", ColOS);
 			groupColumns [(int)GroupCommand.GroupByComponent] = bugsList.AppendColumn ("Component", new CellRendererText (), "text", ColComponent);
+			groupColumns [(int)GroupCommand.GroupByTag] = bugsList.AppendColumn ("Tags", new CellRendererText (), "text", ColTags);
 			CellRendererText ct = new CellRendererText ();
 			bugsList.AppendColumn ("Summary", ct, "text", ColSummary);
 			
@@ -151,6 +154,7 @@ namespace Bugziller
 			ActionCommand refreshBugInfo = new ActionCommand (LocalCommands.RefreshFromSever, GettextCatalog.GetString ("Refresh From Server"));
 			ActionCommand setTagCommand = new ActionCommand (LocalCommands.TagsList, GettextCatalog.GetString ("Set tag"));
 			ActionCommand clearTagsCommand = new ActionCommand (LocalCommands.ClearTags, GettextCatalog.GetString ("Clear Tags"));
+			ActionCommand editTagsCommand = new ActionCommand (LocalCommands.EditTags, GettextCatalog.GetString ("Edit Tags"));
 			setTagCommand.CommandArray = true;
 			setTagCommand.ActionType = ActionType.Check;
 			
@@ -169,6 +173,7 @@ namespace Bugziller
 			tagsSet.Add (setTagCommand);
 			tagsSet.AddSeparator ();
 			tagsSet.Add (clearTagsCommand);
+			tagsSet.Add (editTagsCommand);
 			
 			menuSet.Add (toggleRead);
 			menuSet.AddSeparator ();
@@ -207,6 +212,7 @@ namespace Bugziller
 			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByOwner, GettextCatalog.GetString ("Assigned To")));
 			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupBySeverity, GettextCatalog.GetString ("Severity")));
 			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByStatus, GettextCatalog.GetString ("Status")));
+			groupByMenuSet.Add (new ActionCommand (GroupCommand.GroupByTag, GettextCatalog.GetString ("Tag")));
 			
 			MenuButton groupButton = new MenuButton ();
 			groupButton.Relief = ReliefStyle.None;
@@ -274,7 +280,8 @@ namespace Bugziller
 			ClearTags,
 			NewServer,
 			DeleteServer,
-			EditServer
+			EditServer,
+			EditTags
 		}
 		
 		enum GroupCommand
@@ -284,6 +291,7 @@ namespace Bugziller
 			GroupByStatus,
 			GroupByMilestone,
 			GroupBySeverity,
+			GroupByTag,
 			GroupByNothing
 		}
 
@@ -438,9 +446,9 @@ namespace Bugziller
 			else
 				fg = null;
 			if (pi.Equals (TreeIter.Zero))
-				bugsStore.AppendValues (bug, GrepGroupValue (bug), bug.Id, bug.LocalPriority, bug.Status, bug.Severity, bug.TargetMilestone, age, bug.Assignee, bug.OperatingSystem, bug.Component, bug.Summary, we, bg, fg);
+				bugsStore.AppendValues (bug, GrepGroupValue (bug), bug.Id, bug.LocalPriority, bug.Status, bug.Severity, bug.TargetMilestone, age, bug.Assignee, bug.OperatingSystem, bug.Component, bug.Summary, we, bg, fg, GetTagsString (bug));
 			else
-				bugsStore.AppendValues (pi, bug, GrepGroupValue (bug), bug.Id, bug.LocalPriority, bug.Status, bug.Severity, bug.TargetMilestone, age, bug.Assignee, bug.OperatingSystem, bug.Component, bug.Summary, we, bg, fg);
+				bugsStore.AppendValues (pi, bug, GrepGroupValue (bug), bug.Id, bug.LocalPriority, bug.Status, bug.Severity, bug.TargetMilestone, age, bug.Assignee, bug.OperatingSystem, bug.Component, bug.Summary, we, bg, fg, GetTagsString (bug));
 		}
 		
 		TreeIter AppendGroup (string name)
@@ -456,8 +464,14 @@ namespace Bugziller
 			case GroupCommand.GroupByOwner: return b.Assignee;
 			case GroupCommand.GroupBySeverity: return b.Severity;
 			case GroupCommand.GroupByStatus: return b.Status;
+			case GroupCommand.GroupByTag: return GetTagsString (b);
 			}
 			return "";
+		}
+		
+		string GetTagsString (BugInfo b)
+		{
+			return string.Join (",", b.Tags);
 		}
 		
 		bool IsFiltered (BugInfo bi)
@@ -630,6 +644,16 @@ namespace Bugziller
 			server.Save ();
 		}
 		
+		[CommandHandler (LocalCommands.EditTags)]
+		protected void OnEditTags ()
+		{
+			TagsManagerDialog dlg = new TagsManagerDialog (server.Tags);
+			dlg.Run ();
+			dlg.Destroy ();
+			Fill ();
+			server.Save ();
+		}
+		
 		[CommandHandler (LocalCommands.TagsList)]
 		protected void OnTaskList (object data)
 		{
@@ -717,6 +741,7 @@ namespace Bugziller
 		[CommandHandler (GroupCommand.GroupByOwner)] protected void OnGroupByOwner () { OnGroupBy (GroupCommand.GroupByOwner); }
 		[CommandHandler (GroupCommand.GroupBySeverity)] protected void OnGroupBySeverity () { OnGroupBy (GroupCommand.GroupBySeverity); }
 		[CommandHandler (GroupCommand.GroupByStatus)] protected void OnGroupByStatus () { OnGroupBy (GroupCommand.GroupByStatus); }
+		[CommandHandler (GroupCommand.GroupByTag)] protected void OnGroupByTag () { OnGroupBy (GroupCommand.GroupByTag); }
 		[CommandHandler (GroupCommand.GroupByNothing)] protected void OnGroupByNothing () { OnGroupBy (GroupCommand.GroupByNothing); }
 		
 		void OnGroupBy (GroupCommand c)

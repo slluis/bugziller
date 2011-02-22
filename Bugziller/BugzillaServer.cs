@@ -72,10 +72,6 @@ namespace Bugziller
 			System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate {
 				return true;
 			};
-			
-			Tags.Add (new BugTag ("OnHold", new Gdk.Color (140, 140, 140)));
-			Tags.Add (new BugTag ("MacBug", new Gdk.Color (140, 140, 140)));
-			Tags.Add (new BugTag ("NeedInfo", new Gdk.Color (140, 140, 223)));
 		}
 		
 		public static BugzillaServer Load (int id)
@@ -292,11 +288,18 @@ namespace Bugziller
 			lock (bugs) {
 				foreach (Bug b in data) {
 					BugInfo bi;
-					if (bugs.TryGetValue (b.Id, out bi))
+					if (bugs.TryGetValue (b.Id, out bi)) {
+						if (b.Product != Product) {
+							bugs.Remove (b.Id);
+							orderedBugs.Remove (bi);
+							continue;
+						}
 						modCount++;
+					}
 					else {
+						if (b.Product != Product)
+							continue;
 						newCount++;
-						Console.WriteLine ("ppnwe:" + b.Id);
 					}
 					BugComment[] coms = null;
 					if (comments != null)

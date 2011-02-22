@@ -240,6 +240,10 @@ namespace Bugzproxy
 		public string OperatingSystem {
 			get { return bi.op_sys; }
 		}
+		
+		public string Product {
+			get { return bi.product; }
+		}
 	}
 	// class Bug
 }

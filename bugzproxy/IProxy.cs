@@ -181,6 +181,7 @@ namespace Bugzproxy
 			public string component;
 			[XmlRpcMissingMapping(MappingAction.Ignore)]
 			public string op_sys;
+			public string product;
 		}
 
 		/// <summary>A list of Bugs</summary>

@@ -60,6 +60,10 @@
     <Compile Include="EditServerDialog.cs" />
     <Compile Include="gtk-gui\Bugziller.EditServerDialog.cs" />
     <Compile Include="Priority.cs" />
+    <Compile Include="TagsManagerDialog.cs" />
+    <Compile Include="gtk-gui\Bugziller.TagsManagerDialog.cs" />
+    <Compile Include="NewTagDialog.cs" />
+    <Compile Include="gtk-gui\Bugziller.NewTagDialog.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Bugziller.addin.xml">
