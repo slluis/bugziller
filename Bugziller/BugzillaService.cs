@@ -79,7 +79,7 @@ namespace Bugziller
 		
 		public static FilePath BugzillaDataPath {
 			get {
-				return PropertyService.ConfigPath.Combine ("Bugzilla");
+				return PropertyService.Locations.Data.Combine ("Bugzilla");
 			}
 		}
 		

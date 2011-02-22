@@ -7,6 +7,11 @@
        description = "Integrates Bugzilla into the MonoDevelop IDE."
 	   category    = "IDE extensions"
        version   = "2.6">
+       
+    <Header>
+    	<PreviewImage1>buglist.png</PreviewImage1>
+    	<Icon32>bugzilla.png</Icon32>
+    </Header>
 
 	<Runtime>
 		<Import assembly="bugzproxy.dll" />
@@ -18,9 +23,9 @@
 		<Addin id="Ide" version="2.6"/>
 	</Dependencies>
 	
-	<Extension path = "/MonoDevelop/Ide/Pads">
+<!--	<Extension path = "/MonoDevelop/Ide/Pads">
 		<Pad id="Bugziller.BugsPad" _label="Bugzilla" class="Bugziller.BugsPad" defaultPlacement = "Right" defaultStatus="AutoHide"/>
-	</Extension>
+	</Extension>-->
 
 	<Extension path = "/MonoDevelop/Ide/Commands">
 		<Command id = "Bugziller.Commands.ShowBugsList" 

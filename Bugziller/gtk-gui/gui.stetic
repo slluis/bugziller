@@ -6,7 +6,7 @@
   </configuration>
   <import>
     <widget-library name="MonoDevelop.Ide, Version=2.6.0.0, Culture=neutral" />
-    <widget-library name="../../../../.config/MonoDevelop/addins/Bugziller/Bugziller.dll" internal="true" />
+    <widget-library name="../../bin/Bugziller.dll" internal="true" />
   </import>
   <widget class="Gtk.Bin" id="Bugziller.BugsViewWidget" design-size="575 729">
     <property name="MemberName" />
